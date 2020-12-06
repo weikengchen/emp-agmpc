@@ -23,6 +23,15 @@ void bench_once(int party, NetIOMP<nP> * ios[nT+1], ThreadPool * pool, string fi
 	ios[1]->flush();
 	t2 = time_from(start);
 	if(party == 1)cout <<"FUNC_IND:\t"<<party<<"\t"<<t2<<" \n"<<flush;
+	
+	
+	if(party == 1) {
+		int cot_limit = mpc->fpre->abit->abit1[2]->ot_limit;
+		int cot_used = mpc->fpre->abit->abit1[2]->ot_used;
+
+		cout << "COT limit/used: " << cot_limit << "\t" << cot_used << " \n"<< flush;
+		cout <<"FUNC_IND adjusted:\t"<<party<<"\t"<<t2 * (1.0 * cot_used / cot_limit)<<" \n"<<flush;
+	}
 
 	start = clock_start();
 	mpc->function_dependent();
