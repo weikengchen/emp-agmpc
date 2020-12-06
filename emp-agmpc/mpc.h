@@ -6,11 +6,11 @@
 #include <emp-tool/emp-tool.h>
 using namespace emp;
 
-template<int nP>
+template<int nP, int nT>
 class CMPC { public:
 	const static int SSP = 5;//5*8 in fact...
 	const block MASK = makeBlock(0x0ULL, 0xFFFFFULL);
-	FpreMP<nP>* fpre = nullptr;
+	FpreMP<nP, nT>* fpre = nullptr;
 	block* mac[nP+1];
 	block* key[nP+1];
 	bool* value;
@@ -42,7 +42,7 @@ class CMPC { public:
 	block (*GT)[nP+1][4][nP+1];
 	block * eval_labels[nP+1];
 	PRP prp;
-	CMPC(NetIOMP<nP> * io[2], ThreadPool * pool, int party, BristolFormat * cf, int ssp = 40) {
+	CMPC(NetIOMP<nP> * io[nT + 1], ThreadPool * pool, int party, BristolFormat * cf, int ssp = 40) {
 		this->party = party;
 		this->io = io[0];
 		this->cf = cf;
@@ -55,7 +55,7 @@ class CMPC { public:
 		}
 		num_in = cf->n1+cf->n2;
 		total_pre = num_in + num_ands + 3*ssp;
-		fpre = new FpreMP<nP>(io, pool, party, ssp);
+		fpre = new FpreMP<nP, nT>(io, pool, party, ssp);
 		Delta = fpre->Delta;
 
 		if(party == 1) {

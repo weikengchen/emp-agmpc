@@ -11,8 +11,8 @@ include(${CMAKE_FOLDER}/cmake/enable_float.cmake)
 FIND_PACKAGE(emp-ot REQUIRED)
 INCLUDE_DIRECTORIES(${EMP-OT_INCLUDE_DIRS})
 
-install(DIRECTORY emp-agmpc DESTINATION include)
-install(DIRECTORY cmake/ DESTINATION cmake)
+install(FILES cmake/emp-agmpc-config.cmake DESTINATION cmake/)
+install(DIRECTORY emp-agmpc DESTINATION include/)
 
 # Test cases
 macro (add_test _name)

@@ -11,15 +11,19 @@ int main(int argc, char** argv) {
 	parse_party_and_port(argv, &party, &port);
 
 	const static int nP = 3;
-	NetIOMP<nP> io(party, port);
-	NetIOMP<nP> io2(party, port+2*(nP+1)*(nP+1)+1);
-	NetIOMP<nP> *ios[2] = {&io, &io2};
-	ThreadPool pool(4);	
+	const static int nT = 5;
+
+	NetIOMP<nP>* ios[nT+1];
+	for(int i = 0; i < nT+1; i++) {
+		ios[i] = new NetIOMP<nP>(party, port +2*(nP+1)*(nP+1)*i+1);
+	}
+
+	ThreadPool pool(4);
 	string file = circuit_file_location+"/AES-non-expanded.txt";
 	file = circuit_file_location+"/sha-1.txt";
 	BristolFormat cf(file.c_str());
 
-	CMPC<nP>* mpc = new CMPC<nP>(ios, &pool, party, &cf);
+	CMPC<nP, nT>* mpc = new CMPC<nP, nT>(ios, &pool, party, &cf);
 	cout <<"Setup:\t"<<party<<"\n";
 
 	mpc->function_independent();
@@ -31,7 +35,7 @@ int main(int argc, char** argv) {
 	bool in[512]; bool out[160];
 	memset(in, false, 512);
 	mpc->online(in, out);
-	uint64_t band2 = io.count();
+	uint64_t band2 = ios[0]->count();
 	cout <<"bandwidth\t"<<party<<"\t"<<band2<<endl;
 	cout <<"ONLINE:\t"<<party<<"\n";
 	if(party == 1) {

@@ -5,11 +5,15 @@
 #include "netmp.h"
 #include "helper.h"
 
-template<int nP>
+template<int nP, int nT=1>
 class ABitMP { public:
-	IKNP<NetIO> *abit1[nP+1];
-	IKNP<NetIO> *abit2[nP+1];
+	FerretCOT<NetIO> *abit1[nP+1];
+	FerretCOT<NetIO> *abit2[nP+1];
 	NetIOMP<nP> *io;
+
+	NetIO* ios[nP+1][nT];
+	NetIO* ios2[nP+1][nT];
+
 	ThreadPool * pool;
 	int party;
 	PRG prg;
@@ -17,52 +21,59 @@ class ABitMP { public:
 	Hash hash;
 	int ssp;
 	block * pretable;
-	ABitMP(NetIOMP<nP>* io, ThreadPool * pool, int party, int ssp = 40) {
+	ABitMP(NetIOMP<nP>** io, ThreadPool * pool, int party, int ssp = 40) {
 		this->ssp = ssp;
-		this->io = io;
+		this->io = io[0];
 		this->pool = pool;
 		this->party = party;
-		bool * tmp = new bool[128];
-		prg.random_bool(tmp, 128);
+
+		prg.random_block(&this->Delta, 128);
+		block one = makeBlock(0xFFFFFFFFFFFFFFFFLL,0xFFFFFFFFFFFFFFFELL);
+		this->Delta = this->Delta & one;
+		this->Delta = this->Delta ^ 0x1;
+
+		for(int i = 1; i <= nP; ++i) if(i != party) for(int k = 0; k < nT; k++) {
+			this->ios[i][k] = io[k]->get(i, false);
+			this->ios2[i][k] = io[k]->get(i, true);
+		}
+
 		for(int i = 1; i <= nP; ++i) for(int j = 1; j <= nP; ++j) if(i < j) {
 			if(i == party) {
-					abit1[j] = new IKNP<NetIO>(io->get(j, false));
-					abit2[j] = new IKNP<NetIO>(io->get(j, true));
+					abit1[j] = new FerretCOT<NetIO>(ALICE, nT, this->ios[j], true, false);
+					abit2[j] = new FerretCOT<NetIO>(BOB, nT, this->ios2[j], true, false);
 			} else if (j == party) {
-					abit2[i] = new IKNP<NetIO>(io->get(i, false));
-					abit1[i] = new IKNP<NetIO>(io->get(i, true));
+					abit2[i] = new FerretCOT<NetIO>(BOB, nT, this->ios[i], true, false);
+					abit1[i] = new FerretCOT<NetIO>(ALICE, nT, this->ios2[i], true, false);
 			}
 		}
 
 		vector<future<void>> res;//relic multi-thread problems...
 		for(int i = 1; i <= nP; ++i) for(int j = 1; j <= nP; ++j) if(i < j) {
-			if(i == party) {
-				res.push_back(pool->enqueue([this, io, tmp, j]() {
-					abit1[j]->setup_send(tmp);
-					io->flush(j);
-				}));
-				res.push_back(pool->enqueue([this, io, j]() {
-					abit2[j]->setup_recv();
-					io->flush(j);
-				}));
-			} else if (j == party) {
-				res.push_back(pool->enqueue([this, io, i]() {
-					abit2[i]->setup_recv();
-					io->flush(i);
-				}));
-				res.push_back(pool->enqueue([this, io, tmp, i]() {
-					abit1[i]->setup_send(tmp);
-					io->flush(i);
-				}));
-			}
-		}
+					if(i == party) {
+						res.push_back(pool->enqueue([this, io, j]() {
+							abit1[j]->setup(this->Delta);
+							for(int k = 0; k < nT; ++k)
+								io[k]->flush(j);
+						}));
+						res.push_back(pool->enqueue([this, io, j]() {
+							abit2[j]->setup();
+							for(int k = 0; k < nT; ++k)
+								io[k]->flush(j);
+						}));
+					} else if (j == party) {
+						res.push_back(pool->enqueue([this, io, i]() {
+							abit2[i]->setup();
+							for(int k = 0; k < nT; ++k)
+								io[k]->flush(i);
+						}));
+						res.push_back(pool->enqueue([this, io, i]() {
+							abit1[i]->setup(this->Delta);
+							for(int k = 0; k < nT; ++k)
+								io[k]->flush(i);
+						}));
+					}
+				}
 		joinNclean(res);
-
-		if(party == 1)
-			Delta = abit1[2]->Delta;
-		else 
-			Delta = abit1[1]->Delta;
-		delete[] tmp;
 	}
 	~ABitMP() {
 		for(int i = 1; i <= nP; ++i) if( i!= party ) {

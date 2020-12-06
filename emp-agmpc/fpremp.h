@@ -8,24 +8,24 @@
 #include "cmpc_config.h"
 
 using namespace emp;
-template<int nP>
+template<int nP, int nT=1>
 class FpreMP { public:
 	ThreadPool *pool;
 	int party;
 	NetIOMP<nP> * io;
-	ABitMP<nP>* abit;
+	ABitMP<nP, nT>* abit;
 	block Delta;
 	CRH * prps;
 	CRH * prps2;
 	PRG * prgs;
 	PRG prg;
 	int ssp;
-	FpreMP(NetIOMP<nP> * io[2], ThreadPool * pool, int party, int ssp = 40) {
+	FpreMP(NetIOMP<nP> * io[nT + 1], ThreadPool * pool, int party, int ssp = 40) {
 		this->party = party;
 		this->pool = pool;
 		this->io = io[0];
 		this ->ssp = ssp;
-		abit = new ABitMP<nP>(io[1], pool, party);
+		abit = new ABitMP<nP, nT>(&io[1], pool, party);
 		Delta = abit->Delta;
 		prps = new CRH[nP+1];
 		prps2 = new CRH[nP+1];
