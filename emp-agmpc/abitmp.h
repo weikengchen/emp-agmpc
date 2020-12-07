@@ -27,10 +27,11 @@ class ABitMP { public:
 		this->pool = pool;
 		this->party = party;
 
-		prg.random_block(&this->Delta, 128);
+		block suggested_delta;
+		prg.random_block(&suggested_delta, 1);
 		block one = makeBlock(0xFFFFFFFFFFFFFFFFLL,0xFFFFFFFFFFFFFFFELL);
-		this->Delta = this->Delta & one;
-		this->Delta = this->Delta ^ 0x1;
+		suggested_delta = suggested_delta & one;
+		suggested_delta = suggested_delta ^ 0x1;
 
 		for(int i = 1; i <= nP; ++i) if(i != party) for(int k = 0; k < nT; k++) {
 			this->ios[i][k] = io[k]->get(i, false);
@@ -49,31 +50,37 @@ class ABitMP { public:
 
 		vector<future<void>> res;//relic multi-thread problems...
 		for(int i = 1; i <= nP; ++i) for(int j = 1; j <= nP; ++j) if(i < j) {
-					if(i == party) {
-						res.push_back(pool->enqueue([this, io, j]() {
-							abit1[j]->setup(this->Delta);
-							for(int k = 0; k < nT; ++k)
-								io[k]->flush(j);
-						}));
-						res.push_back(pool->enqueue([this, io, j]() {
-							abit2[j]->setup();
-							for(int k = 0; k < nT; ++k)
-								io[k]->flush(j);
-						}));
-					} else if (j == party) {
-						res.push_back(pool->enqueue([this, io, i]() {
-							abit2[i]->setup();
-							for(int k = 0; k < nT; ++k)
-								io[k]->flush(i);
-						}));
-						res.push_back(pool->enqueue([this, io, i]() {
-							abit1[i]->setup(this->Delta);
-							for(int k = 0; k < nT; ++k)
-								io[k]->flush(i);
-						}));
-					}
-				}
+			if(i == party) {
+				res.push_back(pool->enqueue([this, io, j, suggested_delta]() {
+					abit1[j]->setup(suggested_delta, "./data/pre_ot_data_reg_send_" + std::to_string(j));
+					for(int k = 0; k < nT; ++k)
+						io[k]->flush(j);
+				}));
+				res.push_back(pool->enqueue([this, io, j]() {
+					abit2[j]->setup("./data/pre_ot_data_reg_recv_" + std::to_string(j));
+					for(int k = 0; k < nT; ++k)
+						io[k]->flush(j);
+				}));
+			} else if (j == party) {
+				res.push_back(pool->enqueue([this, io, i]() {
+					abit2[i]->setup("./data/pre_ot_data_reg_recv_" + std::to_string(i));
+					for(int k = 0; k < nT; ++k)
+						io[k]->flush(i);
+				}));
+				res.push_back(pool->enqueue([this, io, i, suggested_delta]() {
+					abit1[i]->setup(suggested_delta, "./data/pre_ot_data_reg_send_" + std::to_string(i));
+					for(int k = 0; k < nT; ++k)
+						io[k]->flush(i);
+				}));
+			}
+		}
 		joinNclean(res);
+
+		if(party == ALICE) {
+			this->Delta = abit1[2]->Delta;
+		} else {
+			this->Delta = abit1[1]->Delta;
+		}
 	}
 	~ABitMP() {
 		for(int i = 1; i <= nP; ++i) if( i!= party ) {
