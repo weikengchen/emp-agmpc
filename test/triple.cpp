@@ -3,22 +3,22 @@
 using namespace std;
 using namespace emp;
 
-const static int nP = 3;
+const static int nP = 2;
 int party, port;
 int main(int argc, char** argv) {
 	parse_party_and_port(argv, &party, &port);
 	if(party > nP)return 0;
-	NetIOMP<nP> io(party, port);
-#ifdef LOCALHOST
-	NetIOMP<nP> io2(party, port+2*(nP+1)*(nP+1)+1);
-#else
-	NetIOMP<nP> io2(party, port+2*(nP+1));
-#endif
-	NetIOMP<nP> *ios[2] = {&io, &io2};
 
-	ThreadPool pool(16);	
+	const static int nT = 5;
 
-	FpreMP<nP> mp(ios, &pool, party);
+	NetIOMP<nP>* ios[nT+1];
+	for(int i = 0; i < nT+1; i++) {
+		ios[i] = new NetIOMP<nP>(party, port +2*(nP+1)*(nP+1)*i+1);
+	}
+
+	ThreadPool pool(96);	
+
+	FpreMP<nP, nT> mp(ios, &pool, party);
 
 	int num_ands = 1000 * 1000;
 	block * mac[nP+1];
