@@ -113,22 +113,26 @@ class CMPC { public:
 		if(party != 1)
 			prg.random_block(labels, cf->num_wire);
 
-		fpre->compute(ANDS_mac, ANDS_key, ANDS_value, num_ands);
 
-		prg.random_bool(preprocess_value, total_pre);
-		fpre->abit->compute(preprocess_mac, preprocess_key, preprocess_value, total_pre);
-		auto ret = fpre->abit->check(preprocess_mac, preprocess_key, preprocess_value, total_pre);
-ret.get();
+		//fpre->compute(ANDS_mac, ANDS_key, ANDS_value, num_ands);
+
+		//prg.random_bool(preprocess_value, total_pre);
+		memset(preprocess_value, false, total_pre);
+		memset(ANDS_value, false, 3 * num_ands);
+		for(int i = 1; i <= nP; i++) {
+			memset(preprocess_key[i], false, sizeof(block) * total_pre);
+			memset(preprocess_mac[i], false, sizeof(block) * total_pre);
+			memset(ANDS_key[i], false, sizeof(block) * 3 * num_ands);
+                        memset(ANDS_mac[i], false, sizeof(block) * 3 * num_ands);
+		}
+		//auto ret = fpre->abit->check(preprocess_mac, preprocess_key, preprocess_value, total_pre);
+		//ret.get();
 
 		for(int i = 1; i <= nP; ++i) {
 			memcpy(key[i], preprocess_key[i], num_in * sizeof(block));
 			memcpy(mac[i], preprocess_mac[i], num_in * sizeof(block));
 		}
 		memcpy(value, preprocess_value, num_in * sizeof(bool));
-#ifdef __debug
-		check_MAC<nP>(io, ANDS_mac, ANDS_key, ANDS_value, Delta, num_ands*3, party);
-		check_correctness<nP>(io, ANDS_value, num_ands, party);
-#endif
 //		ret.get();
 	}
 
