@@ -10,9 +10,11 @@ const static int fpre_threads = 1;
 
 //#define __debug
 const static char *IP[] = {""
-,	"127.0.0.1"
-,	"127.0.0.1"
-,	"127.0.0.1"};
+,	"172.31.1.137"
+,	"172.31.15.170"
+,	"172.31.12.22"
+,	"172.31.13.61"
+,	"172.31.7.45"};
 
 const static bool lan_network = false;
 #endif// __C2PC_CONFIG

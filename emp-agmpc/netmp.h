@@ -55,6 +55,7 @@ class NetIOMP { public:
 	}
 
 	~NetIOMP() {
+		printf("%d\n", count());
 		for(int i = 1; i <= nP; ++i)
 			if(i != party) {
 				delete ios[i];

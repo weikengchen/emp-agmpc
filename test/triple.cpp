@@ -16,10 +16,11 @@ int main(int argc, char** argv) {
 #endif
 	NetIOMP<nP> *ios[2] = {&io, &io2};
 
-	ThreadPool pool(2*(nP-1)+2);	
+	ThreadPool pool(16);	
+
 	FpreMP<nP> mp(ios, &pool, party);
 
-	int num_ands = 1<<17;
+	int num_ands = 1000 * 1000;
 	block * mac[nP+1];
 	block * key[nP+1];
 	bool * value;
@@ -31,6 +32,6 @@ int main(int argc, char** argv) {
 	value = new bool[num_ands*3];
 	auto t1 = clock_start();
 	mp.compute(mac, key, value, num_ands);
-	cout <<"Gates: "<<num_ands<<" time: "<<time_from(t1)<<endl;
+	cout <<"Gates: "<<num_ands<<" time: "<<time_from(t1)/num_ands<<endl;
 	return 0;
 }
