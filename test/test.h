@@ -47,9 +47,10 @@ void bench_once(int party, NetIOMP<nP> * ios[nT+1], ThreadPool * pool, string fi
 	ios[0]->flush();
 	ios[1]->flush();
 	t2 = time_from(start);
-//	uint64_t band2 = io.count();
-//	if(party == 1)cout <<"bandwidth\t"<<party<<"\t"<<band2<<endl;
 	if(party == 1)cout <<"ONLINE:\t"<<party<<"\t"<<t2<<" \n"<<flush;
+
+	cout << ios[0]->count() << endl;
+	cout << ios[1]->count() << endl;
 	delete mpc;
 }
 
